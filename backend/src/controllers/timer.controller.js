@@ -5,7 +5,6 @@ import AppError from "../utils/AppError.js";
 export const startTimer = async (req, res) => {
   const { taskId } = req.params;
 
-  // 1. Check task ownership
   const task = await Task.findOne({
     _id: taskId,
     user: req.user.id,
@@ -15,7 +14,6 @@ export const startTimer = async (req, res) => {
     throw new AppError("Task not found", 404);
   }
 
-  // 2. Check if user already has an active timer
   const activeTimer = await TimeLog.findOne({
     user: req.user.id,
     endTime: null,
@@ -28,7 +26,6 @@ export const startTimer = async (req, res) => {
     );
   }
 
-  // 3. Create new time log
   const timeLog = await TimeLog.create({
     task: task._id,
     user: req.user.id,
@@ -39,5 +36,52 @@ export const startTimer = async (req, res) => {
     success: true,
     message: "Timer started successfully",
     timeLog,
+  });
+};
+
+
+export const stopTimer = async (req, res) => {
+  const { taskId } = req.params;
+
+  // 1. Check task ownership
+  const task = await Task.findOne({
+    _id: taskId,
+    user: req.user.id,
+  });
+
+  if (!task) {
+    throw new AppError("Task not found", 404);
+  }
+
+  // 2. Find active timer for this task
+  const activeTimer = await TimeLog.findOne({
+    task: taskId,
+    user: req.user.id,
+    endTime: null,
+  });
+
+  if (!activeTimer) {
+    throw new AppError(
+      "No active timer found for this task",
+      400
+    );
+  }
+
+  // 3. Set end time
+  const endTime = new Date();
+
+  activeTimer.endTime = endTime;
+
+  // 4. Calculate duration in milliseconds
+  activeTimer.duration =
+    endTime.getTime() - activeTimer.startTime.getTime();
+
+  // 5. Save
+  await activeTimer.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Timer stopped successfully",
+    timeLog: activeTimer,
   });
 };
