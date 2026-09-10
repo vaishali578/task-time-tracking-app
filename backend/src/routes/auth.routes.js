@@ -2,7 +2,10 @@ import express from "express";
 import {
   signup,
   login,
+  logout,
 } from "../controllers/auth.controller.js";
+
+import authMiddleware from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -23,5 +26,14 @@ router.post("/signup", signup);
  *     tags: [Authentication]
  */
 router.post("/login", login);
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout authenticated user
+ *     tags: [Authentication]
+ */
+router.post("/logout", authMiddleware, logout);
 
 export default router;
