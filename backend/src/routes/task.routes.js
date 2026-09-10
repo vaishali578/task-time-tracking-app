@@ -4,6 +4,7 @@ import {
   getTasks,
   getTask,
   updateTask,
+  deleteTask,
 } from "../controllers/task.controller.js";
 
 import authMiddleware from "../middleware/auth.middleware.js";
@@ -53,5 +54,17 @@ router.get("/:id", authMiddleware, getTask);
  *       - bearerAuth: []
  */
 router.put("/:id", authMiddleware, updateTask);
+
+
+/**
+ * @swagger
+ * /api/tasks/{id}:
+ *   delete:
+ *     summary: Delete a task
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.delete("/:id", authMiddleware, deleteTask);
 
 export default router;
