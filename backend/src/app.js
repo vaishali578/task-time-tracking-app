@@ -3,6 +3,8 @@ import cors from "cors";
 import authRoutes from "./routes/auth.routes.js";
 import taskRoutes from "./routes/task.routes.js";
 import errorMiddleware from "./middleware/error.middleware.js";
+import timerRoutes from "./routes/timer.routes.js";
+
 const app = express();
 
 app.use(cors());
@@ -17,6 +19,7 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
+app.use("/api/tasks", timerRoutes);
 app.use(errorMiddleware);
 
 export default app;
