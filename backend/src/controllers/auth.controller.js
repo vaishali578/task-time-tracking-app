@@ -1,28 +1,30 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import AppError from "../utils/AppError.js";
 
 export const signup = async (req, res) => {
   const { name, email, password } = req.body;
 
+  // Validate input
   if (!name || !email || !password) {
-    return res.status(400).json({
-      success: false,
-      message: "Name, email and password are required",
-    });
+    throw new AppError(
+      "Name, email and password are required",
+      400
+    );
   }
 
+  // Check existing user
   const existingUser = await User.findOne({ email });
 
   if (existingUser) {
-    return res.status(409).json({
-      success: false,
-      message: "Email is already registered",
-    });
+    throw new AppError("Email is already registered", 409);
   }
 
+  // Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
+  // Create user
   const user = await User.create({
     name,
     email,
@@ -43,45 +45,39 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
-  // 1. Validate input
+  // Validate input
   if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      message: "Email and password are required",
-    });
+    throw new AppError(
+      "Email and password are required",
+      400
+    );
   }
 
-  // 2. Find user
+  // Find user
   const user = await User.findOne({ email });
 
   if (!user) {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid email or password",
-    });
+    throw new AppError("Invalid email or password", 401);
   }
 
-  // 3. Compare password
+  // Compare password
   const isPasswordValid = await bcrypt.compare(
     password,
     user.password
   );
 
   if (!isPasswordValid) {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid email or password",
-    });
+    throw new AppError("Invalid email or password", 401);
   }
 
-  // 4. Generate JWT
+  // Generate JWT
   const token = jwt.sign(
     { userId: user._id },
     process.env.JWT_SECRET,
     { expiresIn: "1d" }
   );
 
-  // 5. Send response
+  // Send response
   res.status(200).json({
     success: true,
     message: "Login successful",

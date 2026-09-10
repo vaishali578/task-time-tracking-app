@@ -1,14 +1,12 @@
 import Task from "../models/Task.js";
+import AppError from "../utils/AppError.js";
 
 export const createTask = async (req, res) => {
   const { title, description } = req.body;
 
   // Validate title
   if (!title || !title.trim()) {
-    return res.status(400).json({
-      success: false,
-      message: "Task title is required",
-    });
+    throw new AppError("Task title is required", 400);
   }
 
   const task = await Task.create({
@@ -45,10 +43,7 @@ export const getTask = async (req, res) => {
   });
 
   if (!task) {
-    return res.status(404).json({
-      success: false,
-      message: "Task not found",
-    });
+    throw new AppError("Task not found", 404);
   }
 
   res.status(200).json({
@@ -67,18 +62,12 @@ export const updateTask = async (req, res) => {
   });
 
   if (!task) {
-    return res.status(404).json({
-      success: false,
-      message: "Task not found",
-    });
+    throw new AppError("Task not found", 404);
   }
 
   if (title !== undefined) {
     if (!title.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Task title cannot be empty",
-      });
+      throw new AppError("Task title cannot be empty", 400);
     }
 
     task.title = title.trim();
@@ -90,10 +79,7 @@ export const updateTask = async (req, res) => {
 
   if (status !== undefined) {
     if (!["Pending", "In Progress", "Completed"].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid task status",
-      });
+      throw new AppError("Invalid task status", 400);
     }
 
     task.status = status;
@@ -117,10 +103,7 @@ export const deleteTask = async (req, res) => {
   });
 
   if (!task) {
-    return res.status(404).json({
-      success: false,
-      message: "Task not found",
-    });
+    throw new AppError("Task not found", 404);
   }
 
   res.status(200).json({

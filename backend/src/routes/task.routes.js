@@ -8,6 +8,7 @@ import {
 } from "../controllers/task.controller.js";
 
 import authMiddleware from "../middleware/auth.middleware.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ const router = express.Router();
  *     security:
  *       - bearerAuth: []
  */
-router.post("/", authMiddleware, createTask);
+router.post("/", authMiddleware, asyncHandler(createTask));
 
 /**
  * @swagger
@@ -31,7 +32,7 @@ router.post("/", authMiddleware, createTask);
  *     security:
  *       - bearerAuth: []
  */
-router.get("/", authMiddleware, getTasks);
+router.get("/", authMiddleware, asyncHandler(getTasks));
 
 /**
  * @swagger
@@ -42,7 +43,7 @@ router.get("/", authMiddleware, getTasks);
  *     security:
  *       - bearerAuth: []
  */
-router.get("/:id", authMiddleware, getTask);
+router.get("/:id", authMiddleware, asyncHandler(getTask));
 
 /**
  * @swagger
@@ -53,7 +54,7 @@ router.get("/:id", authMiddleware, getTask);
  *     security:
  *       - bearerAuth: []
  */
-router.put("/:id", authMiddleware, updateTask);
+router.put("/:id", authMiddleware, asyncHandler(updateTask));
 
 
 /**
@@ -65,6 +66,6 @@ router.put("/:id", authMiddleware, updateTask);
  *     security:
  *       - bearerAuth: []
  */
-router.delete("/:id", authMiddleware, deleteTask);
+router.delete("/:id", authMiddleware, asyncHandler(deleteTask));
 
 export default router;

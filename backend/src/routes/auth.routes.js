@@ -16,7 +16,7 @@ const router = express.Router();
  *     summary: Register a new user
  *     tags: [Authentication]
  */
-router.post("/signup", signup);
+router.post("/signup", asyncHandler(signup));
 
 /**
  * @swagger
@@ -25,7 +25,7 @@ router.post("/signup", signup);
  *     summary: Login user
  *     tags: [Authentication]
  */
-router.post("/login", login);
+router.post("/login", asyncHandler(login));
 
 /**
  * @swagger
