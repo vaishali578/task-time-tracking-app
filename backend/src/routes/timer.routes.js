@@ -1,5 +1,5 @@
 import express from "express";
-import { startTimer, stopTimer, getTimerLogs } from "../controllers/timer.controller.js";
+import { startTimer, stopTimer, getTimerLogs, getTotalTime } from "../controllers/timer.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
@@ -66,6 +66,27 @@ router.get(
   "/:taskId/timer/logs",
   authMiddleware,
   asyncHandler(getTimerLogs)
+);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/timer/total:
+ *   get:
+ *     summary: Get total tracked time for a task
+ *     tags: [Time Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ */
+router.get(
+  "/:taskId/timer/total",
+  authMiddleware,
+  asyncHandler(getTotalTime)
 );
 
 export default router;

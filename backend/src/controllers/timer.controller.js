@@ -111,3 +111,37 @@ export const getTimerLogs = async (req, res) => {
     timeLogs,
   });
 };
+
+export const getTotalTime = async (req, res) => {
+  const { taskId } = req.params;
+
+  // Check task ownership
+  const task = await Task.findOne({
+    _id: taskId,
+    user: req.user.id,
+  });
+
+  if (!task) {
+    throw new AppError("Task not found", 404);
+  }
+
+  // Get all completed time logs
+  const timeLogs = await TimeLog.find({
+    task: taskId,
+    user: req.user.id,
+    endTime: { $ne: null },
+  });
+
+  // Calculate total duration
+  const totalDuration = timeLogs.reduce(
+    (total, log) => total + log.duration,
+    0
+  );
+
+  res.status(200).json({
+    success: true,
+    taskId,
+    totalDuration,
+    totalSessions: timeLogs.length,
+  });
+};
