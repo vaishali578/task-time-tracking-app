@@ -85,3 +85,29 @@ export const stopTimer = async (req, res) => {
     timeLog: activeTimer,
   });
 };
+
+export const getTimerLogs = async (req, res) => {
+  const { taskId } = req.params;
+
+  // Check task ownership
+  const task = await Task.findOne({
+    _id: taskId,
+    user: req.user.id,
+  });
+
+  if (!task) {
+    throw new AppError("Task not found", 404);
+  }
+
+  // Get all timer logs for this task
+  const timeLogs = await TimeLog.find({
+    task: taskId,
+    user: req.user.id,
+  }).sort({ startTime: -1 });
+
+  res.status(200).json({
+    success: true,
+    count: timeLogs.length,
+    timeLogs,
+  });
+};
