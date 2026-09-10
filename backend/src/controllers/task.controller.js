@@ -1,12 +1,43 @@
 import Task from "../models/Task.js";
 import AppError from "../utils/AppError.js";
 
+const ALLOWED_STATUSES = [
+  "Pending",
+  "In Progress",
+  "Completed",
+];
+
+const MAX_TITLE_LENGTH = 200;
+const MAX_DESCRIPTION_LENGTH = 2000;
+
 export const createTask = async (req, res) => {
   const { title, description } = req.body;
 
   // Validate title
-  if (!title || !title.trim()) {
+  if (typeof title !== "string" || !title.trim()) {
     throw new AppError("Task title is required", 400);
+  }
+
+  if (title.trim().length > MAX_TITLE_LENGTH) {
+    throw new AppError(
+      `Task title cannot exceed ${MAX_TITLE_LENGTH} characters`,
+      400
+    );
+  }
+
+  // Validate description
+  if (description !== undefined && typeof description !== "string") {
+    throw new AppError("Task description must be a string", 400);
+  }
+
+  if (
+    description &&
+    description.trim().length > MAX_DESCRIPTION_LENGTH
+  ) {
+    throw new AppError(
+      `Task description cannot exceed ${MAX_DESCRIPTION_LENGTH} characters`,
+      400
+    );
   }
 
   const task = await Task.create({
@@ -56,6 +87,7 @@ export const updateTask = async (req, res) => {
   const { id } = req.params;
   const { title, description, status } = req.body;
 
+  // Find only user's own task
   const task = await Task.findOne({
     _id: id,
     user: req.user.id,
@@ -65,21 +97,45 @@ export const updateTask = async (req, res) => {
     throw new AppError("Task not found", 404);
   }
 
+  // Validate title
   if (title !== undefined) {
-    if (!title.trim()) {
+    if (typeof title !== "string" || !title.trim()) {
       throw new AppError("Task title cannot be empty", 400);
+    }
+
+    if (title.trim().length > MAX_TITLE_LENGTH) {
+      throw new AppError(
+        `Task title cannot exceed ${MAX_TITLE_LENGTH} characters`,
+        400
+      );
     }
 
     task.title = title.trim();
   }
 
+  // Validate description
   if (description !== undefined) {
+    if (typeof description !== "string") {
+      throw new AppError("Task description must be a string", 400);
+    }
+
+    if (description.trim().length > MAX_DESCRIPTION_LENGTH) {
+      throw new AppError(
+        `Task description cannot exceed ${MAX_DESCRIPTION_LENGTH} characters`,
+        400
+      );
+    }
+
     task.description = description.trim();
   }
 
+  // Validate status
   if (status !== undefined) {
-    if (!["Pending", "In Progress", "Completed"].includes(status)) {
-      throw new AppError("Invalid task status", 400);
+    if (!ALLOWED_STATUSES.includes(status)) {
+      throw new AppError(
+        "Invalid task status. Allowed values: Pending, In Progress, Completed",
+        400
+      );
     }
 
     task.status = status;

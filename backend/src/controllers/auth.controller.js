@@ -2,32 +2,53 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import AppError from "../utils/AppError.js";
+import {
+  isValidEmail,
+  isValidPassword,
+} from "../utils/validation.js";
 
 export const signup = async (req, res) => {
   const { name, email, password } = req.body;
 
-  // Validate input
-  if (!name || !email || !password) {
-    throw new AppError(
-      "Name, email and password are required",
-      400
-    );
+  if (!name || !name.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "Name is required",
+    });
   }
 
-  // Check existing user
-  const existingUser = await User.findOne({ email });
+  if (!email || !isValidEmail(email)) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a valid email",
+    });
+  }
+
+  if (!password || !isValidPassword(password)) {
+    return res.status(400).json({
+      success: false,
+      message: "Password must be at least 6 characters",
+    });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const existingUser = await User.findOne({
+    email: normalizedEmail,
+  });
 
   if (existingUser) {
-    throw new AppError("Email is already registered", 409);
+    return res.status(409).json({
+      success: false,
+      message: "Email is already registered",
+    });
   }
 
-  // Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Create user
   const user = await User.create({
-    name,
-    email,
+    name: name.trim(),
+    email: normalizedEmail,
     password: hashedPassword,
   });
 
@@ -45,16 +66,25 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
-  // Validate input
-  if (!email || !password) {
-    throw new AppError(
-      "Email and password are required",
-      400
-    );
+  if (!email || !isValidEmail(email)) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a valid email",
+    });
   }
 
-  // Find user
-  const user = await User.findOne({ email });
+  if (!password) {
+    return res.status(400).json({
+      success: false,
+      message: "Password is required",
+    });
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const user = await User.findOne({
+    email: normalizedEmail,
+  });
 
   if (!user) {
     throw new AppError("Invalid email or password", 401);
