@@ -2,6 +2,8 @@ import express from "express";
 import {
   createTask,
   getTasks,
+  getTask,
+  updateTask,
 } from "../controllers/task.controller.js";
 
 import authMiddleware from "../middleware/auth.middleware.js";
@@ -29,5 +31,27 @@ router.post("/", authMiddleware, createTask);
  *       - bearerAuth: []
  */
 router.get("/", authMiddleware, getTasks);
+
+/**
+ * @swagger
+ * /api/tasks/{id}:
+ *   get:
+ *     summary: Get a single task
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get("/:id", authMiddleware, getTask);
+
+/**
+ * @swagger
+ * /api/tasks/{id}:
+ *   put:
+ *     summary: Update a task
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.put("/:id", authMiddleware, updateTask);
 
 export default router;
