@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import authStore from "../store/authStore";
 import { getDailySummary } from "../services/summary";
+import { logoutUser } from "../services/auth";
 import {
     getTasks,
     createTask,
@@ -48,8 +49,15 @@ const Dashboard = () => {
     const user = authStore((state) => state.user);
     const logout = authStore((state) => state.logout);
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        try {
+            await logoutUser();
+        } catch (error) {
+            console.error("Logout API failed:", error);
+        } finally {
+            logout();
+            navigate("/login");
+        }
     };
 
     // Fetch tasks
