@@ -28,3 +28,35 @@ export const deleteTask = async (taskId) => {
 
     return response.data;
 };
+
+export const startTimer = async (taskId) => {
+    const response = await api.post(
+        `/tasks/${taskId}/timer/start`
+    );
+
+    return response.data;
+};
+
+export const stopTimer = async (taskId) => {
+    const response = await api.post(
+        `/tasks/${taskId}/timer/stop`
+    );
+
+    return response.data;
+};
+
+export const getTimerLogs = async (taskId) => {
+    const response = await api.get(
+        `/tasks/${taskId}/timer/logs`
+    );
+
+    return response.data;
+};
+
+export const getTotalTime = async (taskId) => {
+    const response = await api.get(
+        `/tasks/${taskId}/timer/total`
+    );
+
+    return response.data;
+};

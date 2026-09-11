@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import authStore from "../store/authStore";
+import { getDailySummary } from "../services/summary";
 import {
     getTasks,
     createTask,
     updateTask,
     deleteTask,
+    startTimer,
+    stopTimer,
+    getTimerLogs,
+    getTotalTime,
 } from "../services/task";
 
 const Dashboard = () => {
@@ -27,6 +32,18 @@ const Dashboard = () => {
 
     const [actionError, setActionError] = useState("");
     const [actionLoading, setActionLoading] = useState(false);
+
+    const [activeTimer, setActiveTimer] = useState(null);
+    const [elapsedTime, setElapsedTime] = useState(0);
+    const [timerLoading, setTimerLoading] = useState(false);
+
+    const [selectedTask, setSelectedTask] = useState(null);
+    const [timerLogs, setTimerLogs] = useState([]);
+    const [totalTime, setTotalTime] = useState(0);
+    const [logsLoading, setLogsLoading] = useState(false);
+
+    const [summary, setSummary] = useState(null);
+    const [summaryLoading, setSummaryLoading] = useState(true);
 
     const user = authStore((state) => state.user);
     const logout = authStore((state) => state.logout);
@@ -56,6 +73,53 @@ const Dashboard = () => {
 
     useEffect(() => {
         fetchTasks();
+    }, []);
+
+    useEffect(() => {
+        if (!activeTimer) {
+            setElapsedTime(0);
+            return;
+        }
+
+        const updateElapsedTime = () => {
+            const start = new Date(
+                activeTimer.startTime
+            ).getTime();
+
+            const now = Date.now();
+
+            setElapsedTime(now - start);
+        };
+
+        updateElapsedTime();
+
+        const interval = setInterval(
+            updateElapsedTime,
+            1000
+        );
+
+        return () => clearInterval(interval);
+    }, [activeTimer]);
+
+    useEffect(() => {
+        const fetchSummary = async () => {
+            try {
+                setSummaryLoading(true);
+
+                const data = await getDailySummary();
+
+                setSummary(data.summary);
+            } catch (error) {
+                setActionError(
+                    error.response?.data?.message ||
+                    "Failed to load daily summary"
+                );
+            } finally {
+                setSummaryLoading(false);
+            }
+        };
+
+        fetchSummary();
     }, []);
 
     // Handle form input
@@ -198,6 +262,92 @@ const Dashboard = () => {
         setFormError("");
     };
 
+    const handleStartTimer = async (taskId) => {
+        try {
+            setTimerLoading(true);
+            setActionError("");
+
+            const data = await startTimer(taskId);
+
+            setActiveTimer(data.timeLog);
+
+        } catch (error) {
+            setActionError(
+                error.response?.data?.message ||
+                "Failed to start timer"
+            );
+        } finally {
+            setTimerLoading(false);
+        }
+    };
+
+    const handleStopTimer = async (taskId) => {
+        try {
+            setTimerLoading(true);
+            setActionError("");
+
+            await stopTimer(taskId);
+
+            setActiveTimer(null);
+            setElapsedTime(0);
+
+        } catch (error) {
+            setActionError(
+                error.response?.data?.message ||
+                "Failed to stop timer"
+            );
+        } finally {
+            setTimerLoading(false);
+        }
+    };
+
+    const formatDuration = (milliseconds) => {
+        const totalSeconds = Math.floor(
+            milliseconds / 1000
+        );
+
+        const hours = Math.floor(
+            totalSeconds / 3600
+        );
+
+        const minutes = Math.floor(
+            (totalSeconds % 3600) / 60
+        );
+
+        const seconds = totalSeconds % 60;
+
+        return `${String(hours).padStart(2, "0")}:${String(
+            minutes
+        ).padStart(2, "0")}:${String(seconds).padStart(
+            2,
+            "0"
+        )}`;
+    };
+
+    const handleViewLogs = async (task) => {
+        try {
+            setLogsLoading(true);
+            setActionError("");
+
+            const [logsData, totalData] = await Promise.all([
+                getTimerLogs(task._id),
+                getTotalTime(task._id),
+            ]);
+
+            setSelectedTask(task);
+            setTimerLogs(logsData.timeLogs);
+            setTotalTime(totalData.totalDuration);
+
+        } catch (error) {
+            setActionError(
+                error.response?.data?.message ||
+                "Failed to load timer logs"
+            );
+        } finally {
+            setLogsLoading(false);
+        }
+    };
+
     // Summary
     const totalTasks = tasks.length;
 
@@ -264,6 +414,16 @@ const Dashboard = () => {
                         </p>
                     </div>
 
+                    <div className="mt-3 flex gap-3 text-xs">
+                        <span className="text-gray-500">
+                            Pending: {summary?.pendingTasks || 0}
+                        </span>
+
+                        <span className="text-yellow-600">
+                            In Progress: {summary?.inProgressTasks || 0}
+                        </span>
+                    </div>
+
                     {/* Completed */}
                     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                         <p className="text-sm font-medium text-gray-500">
@@ -271,7 +431,9 @@ const Dashboard = () => {
                         </p>
 
                         <p className="mt-2 text-3xl font-bold text-gray-900">
-                            {completedTasks}
+                            {summaryLoading
+                                ? "..."
+                                : summary?.completedTasks || 0}
                         </p>
 
                         <p className="mt-2 text-sm text-gray-500">
@@ -286,7 +448,11 @@ const Dashboard = () => {
                         </p>
 
                         <p className="mt-2 text-3xl font-bold text-gray-900">
-                            0h 0m
+                            {summaryLoading
+                                ? "..."
+                                : formatDuration(
+                                    summary?.totalTrackedTime || 0
+                                )}
                         </p>
 
                         <p className="mt-2 text-sm text-gray-500">
@@ -317,6 +483,12 @@ const Dashboard = () => {
                     </button>
 
                 </div>
+
+                {actionError && (
+                    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                        {actionError}
+                    </div>
+                )}
 
                 {/* Task List */}
                 <div className="mt-5 space-y-4">
@@ -389,10 +561,10 @@ const Dashboard = () => {
                                                     )
                                                 }
                                                 className={`rounded-full px-3 py-1.5 text-xs font-medium outline-none ${task.status === "Completed"
-                                                        ? "bg-green-100 text-green-700"
-                                                        : task.status === "In Progress"
-                                                            ? "bg-yellow-100 text-yellow-700"
-                                                            : "bg-gray-100 text-gray-700"
+                                                    ? "bg-green-100 text-green-700"
+                                                    : task.status === "In Progress"
+                                                        ? "bg-yellow-100 text-yellow-700"
+                                                        : "bg-gray-100 text-gray-700"
                                                     }`}
                                             >
                                                 <option value="Pending">
@@ -426,6 +598,13 @@ const Dashboard = () => {
                                         </button>
 
                                         <button
+                                            onClick={() => handleViewLogs(task)}
+                                            className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                                        >
+                                            Time Logs
+                                        </button>
+
+                                        <button
                                             onClick={() => {
                                                 setDeletingTask(task);
                                                 setActionError("");
@@ -436,11 +615,37 @@ const Dashboard = () => {
                                             Delete
                                         </button>
 
-                                        <button
-                                            className="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800"
-                                        >
-                                            ▶ Start Timer
-                                        </button>
+                                        {activeTimer?.task === task._id ? (
+                                            <div className="flex items-center gap-2">
+
+                                                <span className="rounded-lg bg-blue-50 px-3 py-2.5 text-sm font-semibold text-blue-700">
+                                                    {formatDuration(elapsedTime)}
+                                                </span>
+
+                                                <button
+                                                    onClick={() =>
+                                                        handleStopTimer(task._id)
+                                                    }
+                                                    disabled={timerLoading}
+                                                    className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                                >
+                                                    {timerLoading
+                                                        ? "Stopping..."
+                                                        : "■ Stop"}
+                                                </button>
+
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() =>
+                                                    handleStartTimer(task._id)
+                                                }
+                                                disabled={timerLoading || activeTimer}
+                                                className="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                ▶ Start Timer
+                                            </button>
+                                        )}
 
                                     </div>
 
@@ -618,6 +823,130 @@ const Dashboard = () => {
                                 {actionLoading
                                     ? "Deleting..."
                                     : "Delete Task"}
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            )}
+
+            {/* Timer Logs Modal */}
+            {selectedTask && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+
+                    <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+
+                        {/* Header */}
+                        <div className="flex items-start justify-between">
+
+                            <div>
+                                <h2 className="text-xl font-semibold text-gray-900">
+                                    Time Logs
+                                </h2>
+
+                                <p className="mt-1 text-sm text-gray-500">
+                                    {selectedTask.title}
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    setSelectedTask(null);
+                                    setTimerLogs([]);
+                                    setTotalTime(0);
+                                }}
+                                className="text-xl text-gray-400 hover:text-gray-600"
+                            >
+                                ×
+                            </button>
+
+                        </div>
+
+                        {/* Total Time */}
+                        <div className="mt-6 rounded-xl bg-gray-50 p-4">
+
+                            <p className="text-sm text-gray-500">
+                                Total tracked time
+                            </p>
+
+                            <p className="mt-1 text-2xl font-bold text-gray-900">
+                                {formatDuration(totalTime)}
+                            </p>
+
+                        </div>
+
+                        {/* Logs */}
+                        <div className="mt-6">
+
+                            <h3 className="text-sm font-semibold text-gray-900">
+                                Sessions
+                            </h3>
+
+                            {logsLoading ? (
+                                <p className="mt-4 text-sm text-gray-500">
+                                    Loading time logs...
+                                </p>
+                            ) : timerLogs.length === 0 ? (
+                                <p className="mt-4 text-sm text-gray-500">
+                                    No time tracked for this task yet.
+                                </p>
+                            ) : (
+                                <div className="mt-3 max-h-64 space-y-3 overflow-y-auto">
+
+                                    {timerLogs.map((log) => (
+                                        <div
+                                            key={log._id}
+                                            className="rounded-lg border border-gray-200 p-4"
+                                        >
+
+                                            <div className="flex items-center justify-between">
+
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-900">
+                                                        {new Date(
+                                                            log.startTime
+                                                        ).toLocaleString()}
+                                                    </p>
+
+                                                    <p className="mt-1 text-xs text-gray-500">
+                                                        {log.endTime
+                                                            ? `Ended: ${new Date(
+                                                                log.endTime
+                                                            ).toLocaleString()}`
+                                                            : "Currently running"}
+                                                    </p>
+                                                </div>
+
+                                                <span className="text-sm font-semibold text-gray-700">
+                                                    {formatDuration(
+                                                        log.duration
+                                                    )}
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+                                    ))}
+
+                                </div>
+                            )}
+
+                        </div>
+
+                        {/* Close */}
+                        <div className="mt-6 flex justify-end">
+
+                            <button
+                                onClick={() => {
+                                    setSelectedTask(null);
+                                    setTimerLogs([]);
+                                    setTotalTime(0);
+                                }}
+                                className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            >
+                                Close
                             </button>
 
                         </div>
