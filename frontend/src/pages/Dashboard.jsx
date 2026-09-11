@@ -3,6 +3,8 @@ import authStore from "../store/authStore";
 import {
     getTasks,
     createTask,
+    updateTask,
+    deleteTask,
 } from "../services/task";
 
 const Dashboard = () => {
@@ -18,6 +20,13 @@ const Dashboard = () => {
 
     const [formError, setFormError] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [editingTask, setEditingTask] = useState(null);
+
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deletingTask, setDeletingTask] = useState(null);
+
+    const [actionError, setActionError] = useState("");
+    const [actionLoading, setActionLoading] = useState(false);
 
     const user = authStore((state) => state.user);
     const logout = authStore((state) => state.logout);
@@ -85,28 +94,74 @@ const Dashboard = () => {
         try {
             setSubmitting(true);
 
-            await createTask({
-                title: formData.title.trim(),
-                description: formData.description.trim(),
-            });
+            if (editingTask) {
+                // Update existing task
+                await updateTask(editingTask._id, {
+                    title: formData.title.trim(),
+                    description: formData.description.trim(),
+                });
+            } else {
+                // Create new task
+                await createTask({
+                    title: formData.title.trim(),
+                    description: formData.description.trim(),
+                });
+            }
 
-            // Refresh task list
             await fetchTasks();
 
-            // Reset form
             setFormData({
                 title: "",
                 description: "",
             });
 
+            setEditingTask(null);
             setShowCreateModal(false);
+
         } catch (error) {
             setFormError(
                 error.response?.data?.message ||
-                "Failed to create task"
+                `Failed to ${editingTask ? "update" : "create"
+                } task`
             );
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleEditTask = (task) => {
+        setEditingTask(task);
+
+        setFormData({
+            title: task.title,
+            description: task.description || "",
+        });
+
+        setFormError("");
+        setShowCreateModal(true);
+    };
+
+    const handleDeleteTask = async () => {
+        if (!deletingTask) return;
+
+        try {
+            setActionLoading(true);
+            setActionError("");
+
+            await deleteTask(deletingTask._id);
+
+            await fetchTasks();
+
+            setDeletingTask(null);
+            setShowDeleteModal(false);
+
+        } catch (error) {
+            setActionError(
+                error.response?.data?.message ||
+                "Failed to delete task"
+            );
+        } finally {
+            setActionLoading(false);
         }
     };
 
@@ -115,6 +170,8 @@ const Dashboard = () => {
         if (submitting) return;
 
         setShowCreateModal(false);
+
+        setEditingTask(null);
 
         setFormData({
             title: "",
@@ -307,13 +364,12 @@ const Dashboard = () => {
                                             </h4>
 
                                             <span
-                                                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                    task.status === "Completed"
-                                                        ? "bg-green-100 text-green-700"
-                                                        : task.status === "In Progress"
-                                                            ? "bg-yellow-100 text-yellow-700"
-                                                            : "bg-gray-100 text-gray-700"
-                                                }`}
+                                                className={`rounded-full px-2.5 py-1 text-xs font-medium ${task.status === "Completed"
+                                                    ? "bg-green-100 text-green-700"
+                                                    : task.status === "In Progress"
+                                                        ? "bg-yellow-100 text-yellow-700"
+                                                        : "bg-gray-100 text-gray-700"
+                                                    }`}
                                             >
                                                 {task.status}
                                             </span>
@@ -326,11 +382,33 @@ const Dashboard = () => {
                                         </p>
                                     </div>
 
-                                    <button
-                                        className="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800"
-                                    >
-                                        ▶ Start Timer
-                                    </button>
+                                    <div className="flex flex-wrap gap-2">
+
+                                        <button
+                                            onClick={() => handleEditTask(task)}
+                                            className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                                        >
+                                            Edit
+                                        </button>
+
+                                        <button
+                                            onClick={() => {
+                                                setDeletingTask(task);
+                                                setActionError("");
+                                                setShowDeleteModal(true);
+                                            }}
+                                            className="rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                                        >
+                                            Delete
+                                        </button>
+
+                                        <button
+                                            className="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800"
+                                        >
+                                            ▶ Start Timer
+                                        </button>
+
+                                    </div>
 
                                 </div>
                             </div>
@@ -351,11 +429,13 @@ const Dashboard = () => {
 
                             <div>
                                 <h2 className="text-xl font-semibold text-gray-900">
-                                    Create New Task
+                                    {editingTask ? "Edit Task" : "Create New Task"}
                                 </h2>
 
                                 <p className="mt-1 text-sm text-gray-500">
-                                    Add a task to your workspace.
+                                    {editingTask
+                                        ? "Update your task details."
+                                        : "Add a task to your workspace."}
                                 </p>
                             </div>
 
@@ -439,13 +519,74 @@ const Dashboard = () => {
                                     className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {submitting
-                                        ? "Creating..."
-                                        : "Create Task"}
+                                        ? editingTask
+                                            ? "Updating..."
+                                            : "Creating..."
+                                        : editingTask
+                                            ? "Update Task"
+                                            : "Create Task"}
                                 </button>
 
                             </div>
 
                         </form>
+
+                    </div>
+
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+
+                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+
+                        <h2 className="text-xl font-semibold text-gray-900">
+                            Delete Task
+                        </h2>
+
+                        <p className="mt-2 text-sm text-gray-500">
+                            Are you sure you want to delete{" "}
+                            <span className="font-medium text-gray-900">
+                                "{deletingTask?.title}"
+                            </span>
+                            ? This action cannot be undone.
+                        </p>
+
+                        {actionError && (
+                            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                                {actionError}
+                            </div>
+                        )}
+
+                        <div className="mt-6 flex justify-end gap-3">
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setDeletingTask(null);
+                                    setActionError("");
+                                }}
+                                disabled={actionLoading}
+                                className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleDeleteTask}
+                                disabled={actionLoading}
+                                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {actionLoading
+                                    ? "Deleting..."
+                                    : "Delete Task"}
+                            </button>
+
+                        </div>
 
                     </div>
 
