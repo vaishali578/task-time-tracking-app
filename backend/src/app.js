@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth.routes.js";
 import taskRoutes from "./routes/task.routes.js";
 import timerRoutes from "./routes/timer.routes.js";
 import summaryRoutes from "./routes/summary.routes.js";
+import aiRoutes from "./routes/ai.routes.js";
 
 import notFoundMiddleware from "./middleware/notFound.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
@@ -25,6 +26,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/tasks", timerRoutes);
 app.use("/api/summary", summaryRoutes);
+app.use("/api/ai", aiRoutes);
 
 // 404 handler must come after all routes
 app.use(notFoundMiddleware);

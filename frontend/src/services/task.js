@@ -60,3 +60,15 @@ export const getTotalTime = async (taskId) => {
 
     return response.data;
 };
+
+export const getActiveTimer = async () => {
+    const response = await api.get("/tasks/timer/active");
+
+    return response.data;
+};
+
+export const suggestTaskAI = async (prompt) => {
+    const response = await api.post("/ai/suggest", { prompt });
+
+    return response.data;
+};

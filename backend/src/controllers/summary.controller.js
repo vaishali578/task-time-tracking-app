@@ -29,7 +29,11 @@ export const getDailySummary = async (req, res) => {
 
   // Unique tasks worked on today
   const taskIds = [
-    ...new Set(timeLogs.map((log) => log.task.toString())),
+    ...new Set(
+      timeLogs
+        .filter((log) => log.task)
+        .map((log) => log.task.toString())
+    ),
   ];
 
   // Get user's tasks

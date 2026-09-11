@@ -145,3 +145,15 @@ export const getTotalTime = async (req, res) => {
     totalSessions: timeLogs.length,
   });
 };
+
+export const getActiveTimer = async (req, res) => {
+  const activeTimer = await TimeLog.findOne({
+    user: req.user.id,
+    endTime: null,
+  }).populate("task", "title");
+
+  res.status(200).json({
+    success: true,
+    timeLog: activeTimer || null,
+  });
+};

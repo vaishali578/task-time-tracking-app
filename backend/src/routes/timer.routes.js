@@ -1,9 +1,15 @@
 import express from "express";
-import { startTimer, stopTimer, getTimerLogs, getTotalTime } from "../controllers/timer.controller.js";
+import { startTimer, stopTimer, getTimerLogs, getTotalTime, getActiveTimer } from "../controllers/timer.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 const router = express.Router();
+
+router.get(
+  "/timer/active",
+  authMiddleware,
+  asyncHandler(getActiveTimer)
+);
 
 /**
  * @swagger
