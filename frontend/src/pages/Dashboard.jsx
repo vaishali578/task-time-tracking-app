@@ -165,6 +165,23 @@ const Dashboard = () => {
         }
     };
 
+    const handleStatusChange = async (taskId, status) => {
+        try {
+            setActionError("");
+
+            await updateTask(taskId, {
+                status,
+            });
+
+            await fetchTasks();
+        } catch (error) {
+            setActionError(
+                error.response?.data?.message ||
+                "Failed to update task status"
+            );
+        }
+    };
+
     // Close modal
     const handleCloseModal = () => {
         if (submitting) return;
@@ -363,16 +380,33 @@ const Dashboard = () => {
                                                 {task.title}
                                             </h4>
 
-                                            <span
-                                                className={`rounded-full px-2.5 py-1 text-xs font-medium ${task.status === "Completed"
-                                                    ? "bg-green-100 text-green-700"
-                                                    : task.status === "In Progress"
-                                                        ? "bg-yellow-100 text-yellow-700"
-                                                        : "bg-gray-100 text-gray-700"
+                                            <select
+                                                value={task.status}
+                                                onChange={(e) =>
+                                                    handleStatusChange(
+                                                        task._id,
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className={`rounded-full px-3 py-1.5 text-xs font-medium outline-none ${task.status === "Completed"
+                                                        ? "bg-green-100 text-green-700"
+                                                        : task.status === "In Progress"
+                                                            ? "bg-yellow-100 text-yellow-700"
+                                                            : "bg-gray-100 text-gray-700"
                                                     }`}
                                             >
-                                                {task.status}
-                                            </span>
+                                                <option value="Pending">
+                                                    Pending
+                                                </option>
+
+                                                <option value="In Progress">
+                                                    In Progress
+                                                </option>
+
+                                                <option value="Completed">
+                                                    Completed
+                                                </option>
+                                            </select>
 
                                         </div>
 
