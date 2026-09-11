@@ -173,6 +173,7 @@ const Dashboard = () => {
             }
 
             await fetchTasks();
+            await fetchSummary();
 
             setFormData({
                 title: "",
@@ -215,6 +216,7 @@ const Dashboard = () => {
             await deleteTask(deletingTask._id);
 
             await fetchTasks();
+            await fetchSummary();
 
             setDeletingTask(null);
             setShowDeleteModal(false);
@@ -238,6 +240,7 @@ const Dashboard = () => {
             });
 
             await fetchTasks();
+            await fetchSummary();
         } catch (error) {
             setActionError(
                 error.response?.data?.message ||
@@ -290,6 +293,8 @@ const Dashboard = () => {
 
             setActiveTimer(null);
             setElapsedTime(0);
+
+            await fetchSummary();
 
         } catch (error) {
             setActionError(
