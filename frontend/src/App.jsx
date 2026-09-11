@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -7,17 +7,31 @@ import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 function App() {
-  return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
+    return (
+        <Routes>
+            <Route
+                path="/"
+                element={<Navigate to="/login" replace />}
+            />
 
-      <Route path="/signup" element={<Signup />} />
+            <Route
+                path="/login"
+                element={<Login />}
+            />
 
-      <Route element={<ProtectedRoute />}>
-        <Route path="/dashboard" element={<Dashboard />} />
-      </Route>
-    </Routes>
-  );
+            <Route
+                path="/signup"
+                element={<Signup />}
+            />
+
+            <Route element={<ProtectedRoute />}>
+                <Route
+                    path="/dashboard"
+                    element={<Dashboard />}
+                />
+            </Route>
+        </Routes>
+    );
 }
 
 export default App;
