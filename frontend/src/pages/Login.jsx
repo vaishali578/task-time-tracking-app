@@ -1,34 +1,78 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { loginUser } from "../services/auth";
 import authStore from "../store/authStore";
 
 const Login = () => {
-  const { user, token, login, logout } = authStore();
+  const navigate = useNavigate();
 
-  const handleTestLogin = () => {
-    login(
-      {
-        id: "123",
-        name: "Vaishali",
-        email: "vaishali@example.com",
-      },
-      "sample-jwt-token"
-    );
+  const login = authStore((state) => state.login);
+
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    setError("");
+    setLoading(true);
+
+    try {
+      const data = await loginUser(formData);
+
+      login(data.user, data.token);
+
+      navigate("/dashboard");
+    } catch (error) {
+      setError(
+        error.response?.data?.message ||
+          "Login failed"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div>
-      <h1>Login Page</h1>
+      <h1>Login</h1>
 
-      <button onClick={handleTestLogin}>
-        Test Login
-      </button>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="email"
+          name="email"
+          placeholder="Email"
+          value={formData.email}
+          onChange={handleChange}
+        />
 
-      <button onClick={logout}>
-        Logout
-      </button>
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          value={formData.password}
+          onChange={handleChange}
+        />
 
-      <p>User: {user?.name || "Not logged in"}</p>
+        {error && <p>{error}</p>}
 
-      <p>Token: {token || "No token"}</p>
+        <button type="submit" disabled={loading}>
+          {loading ? "Logging in..." : "Login"}
+        </button>
+      </form>
     </div>
   );
 };
